@@ -63,7 +63,7 @@ using POL1 = RAJA::loop_exec;
 using POL0 = RAJA::simd_exec;
 
 #define NESTED
-#undef NESTED
+//#undef NESTED
 
 
 //#include <iostream>
@@ -158,7 +158,7 @@ void rhs4sg_rev( int ifirst, int ilast, int jfirst, int jlast, int kfirst, int k
      //     RAJA::nested::forall(NESTED_EXEC_POL{}, RAJA::make_tuple(i_range, j_range,k_range),
      //     [=] (int i,int j,int k) {
 
-     /*     
+
 #ifdef NESTED    
      //does not work
      RAJA::kernel<POL>(RAJA::make_tuple(i_range,j_range,k_range),
@@ -169,7 +169,7 @@ void rhs4sg_rev( int ifirst, int ilast, int jfirst, int jlast, int kfirst, int k
            RAJA::forall<POL1>(j_range, [=] (int j){
                  RAJA::forall<POL0>(i_range, [=] (int i){
 #endif
-     */
+
 
      //This works
      //#pragma omp parallel for
@@ -177,9 +177,9 @@ void rhs4sg_rev( int ifirst, int ilast, int jfirst, int jlast, int kfirst, int k
      //for(int j=jfirst+2; j <= jlast-2 ; j++ ){
      //RAJA::kernel<single_POL>(RAJA::make_tuple(i_range), [=] (int i) {
 
-#pragma omp parallel for //works but does not vectorize
-     for(int k= k1; k <= k2 ; k++){
-        RAJA::kernel<two_POL>(RAJA::make_tuple(i_range, j_range), [=] (int i, int j) {
+     //#pragma omp parallel for //works but does not vectorize
+     //for(int k= k1; k <= k2 ; k++){
+     //RAJA::kernel<two_POL>(RAJA::make_tuple(i_range, j_range), [=] (int i, int j) {
               
       float_sw4 mux1,mux2,mux3,mux4,muy1,muy2,muy3,muy4;
       float_sw4 r1,r2,r3,mucof,mu1zz,mu2zz,mu3zz,lap2mu,q,u3zip2,u3zip1;
@@ -417,18 +417,18 @@ void rhs4sg_rev( int ifirst, int ilast, int jfirst, int jlast, int kfirst, int k
             lu(2,i,j,k) =  cof*r2;
             lu(3,i,j,k) =  cof*r3;
 
-           });
-     }
+            //});
+            //}
+            //}
             
-            /*
+
 #ifdef NESTED            
                     }); //nested
 #else
               }); 
         }); 
    }); 
-#endif        
-            */         
+#endif
 
   
       if( onesided[4]==1 )
@@ -439,7 +439,7 @@ void rhs4sg_rev( int ifirst, int ilast, int jfirst, int jlast, int kfirst, int k
 	    for(int j=jfirst+2; j<=jlast-2; j++ )
 #pragma simd
 #pragma ivdep
-#pragma forceinline recursive         
+         //#pragma forceinline recursive         
 	       for(int i=ifirst+2; i<=ilast-2; i++ )
 	       {
 
@@ -699,7 +699,7 @@ void rhs4sg_rev( int ifirst, int ilast, int jfirst, int jlast, int kfirst, int k
 	    for(int  j=jfirst+2; j<=jlast-2; j++ )
 #pragma simd
 #pragma ivdep
-#pragma forceinline recursive
+         //#pragma forceinline recursive
 	       for(int i=ifirst+2; i<=ilast-2; i++ )
 	       {
 

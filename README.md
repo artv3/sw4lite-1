@@ -50,6 +50,7 @@ An example input file is provided under `tests/pointsource/pointsource.in`. This
 elastic wave equation for a single point source in a whole space or a half space. The input file is
 given as argument to the executable, as in the example:
 ```
+mpirun -np 1 optimize_mp_c_quartz/sw4lite tests/pointsource/pointsource.in
 mpirun -np 16 sw4lite pointsource.in
 ```
 Output from a run is provided at `tests/pointsource/pointsource.out`.

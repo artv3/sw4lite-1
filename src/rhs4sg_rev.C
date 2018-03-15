@@ -33,9 +33,38 @@
 
 #include "RAJA/RAJA.hpp"
 
-#define acof(i,j,k) a_acof[(i-1)+6*(j-1)+48*(k-1)]
-#define bope(i,j) a_bope[i-1+6*(j-1)]
-#define ghcof(i) a_ghcof[i-1]
+//using NESTED_EXEC_POL =
+//  RAJA::nested::Policy<
+//  RAJA::nested::For<2, RAJA::omp_parallel_for_exec>,
+//  RAJA::nested::For<1, RAJA::seq_exec>,
+//  RAJA::nested::For<0, RAJA::simd_exec> >;
+
+/// - Generates incorrect ouput
+using POL = 
+   RAJA::KernelPolicy<
+    RAJA::statement::For<2, RAJA::omp_parallel_for_exec,
+    RAJA::statement::For<1, RAJA::loop_exec,
+    RAJA::statement::For<0, RAJA::simd_exec,
+    RAJA::statement::Lambda<0> > > > >;
+
+using single_POL = 
+   RAJA::KernelPolicy<
+   RAJA::statement::For<0, RAJA::simd_exec,
+                        RAJA::statement::Lambda<0> > >;
+
+using two_POL = 
+   RAJA::KernelPolicy<
+   RAJA::statement::For<1, RAJA::loop_exec,
+   RAJA::statement::For<0, RAJA::simd_exec,
+                        RAJA::statement::Lambda<0> > > >;
+
+using POL2 = RAJA::omp_parallel_for_exec;
+using POL1 = RAJA::loop_exec;
+using POL0 = RAJA::simd_exec;
+
+#define NESTED
+#undef NESTED
+
 
 //#include <iostream>
 //using namespace std;
@@ -69,9 +98,9 @@ void rhs4sg_rev( int ifirst, int ilast, int jfirst, int jlast, int kfirst, int k
 #define strx(i) a_strx[i-ifirst0]
 #define stry(j) a_stry[j-jfirst0]
 #define strz(k) a_strz[k-kfirst0]
-   //#define acof(i,j,k) a_acof[(i-1)+6*(j-1)+48*(k-1)]
-   //#define bope(i,j) a_bope[i-1+6*(j-1)]
-   //#define ghcof(i) a_ghcof[i-1]
+#define acof(i,j,k) a_acof[(i-1)+6*(j-1)+48*(k-1)]
+#define bope(i,j) a_bope[i-1+6*(j-1)]
+#define ghcof(i) a_ghcof[i-1]
    
    const float_sw4 a1   = 0;
    const float_sw4 i6   = 1.0/6;
@@ -114,6 +143,7 @@ void rhs4sg_rev( int ifirst, int ilast, int jfirst, int jlast, int kfirst, int k
               mu3yz,mu1zx,u1zip2,u1zip1,u1zim1,u1zim2,\
 	      u2zjp2,u2zjp1,u2zjm1,u2zjm2,mu2zy,lau1xz,lau2yz,kb,qb,mb,muz1,muz2,muz3,muz4)
    {
+      /*
 #pragma omp parallel for
   for(int  k= k1; k <= k2 ; k++ )
       for(int j=jfirst+2; j <= jlast-2 ; j++ )
@@ -121,8 +151,36 @@ void rhs4sg_rev( int ifirst, int ilast, int jfirst, int jlast, int kfirst, int k
 #pragma ivdep
 #pragma forceinline recursive
 	 for(int i=ifirst+2; i <= ilast-2 ; i++ )
-   {
+{ */
+     RAJA::RangeSegment k_range(k1,k2+1);
+     RAJA::RangeSegment j_range(jfirst+2,jlast-1);
+     RAJA::RangeSegment i_range(ifirst+2,ilast-1);
+     //     RAJA::nested::forall(NESTED_EXEC_POL{}, RAJA::make_tuple(i_range, j_range,k_range),
+     //     [=] (int i,int j,int k) {
 
+     /*     
+#ifdef NESTED    
+     //does not work
+     RAJA::kernel<POL>(RAJA::make_tuple(i_range,j_range,k_range),
+                       [=] (int i, int j, int k) {
+#else     
+     // This works
+     RAJA::forall<POL2>(k_range, [=] (int k){ 
+           RAJA::forall<POL1>(j_range, [=] (int j){
+                 RAJA::forall<POL0>(i_range, [=] (int i){
+#endif
+     */
+
+     //This works
+     //#pragma omp parallel for
+     //for(int k= k1; k <= k2 ; k++){
+     //for(int j=jfirst+2; j <= jlast-2 ; j++ ){
+     //RAJA::kernel<single_POL>(RAJA::make_tuple(i_range), [=] (int i) {
+
+#pragma omp parallel for //works but does not vectorize
+     for(int k= k1; k <= k2 ; k++){
+        RAJA::kernel<two_POL>(RAJA::make_tuple(i_range, j_range), [=] (int i, int j) {
+              
       float_sw4 mux1,mux2,mux3,mux4,muy1,muy2,muy3,muy4;
       float_sw4 r1,r2,r3,mucof,mu1zz,mu2zz,mu3zz,lap2mu,q,u3zip2,u3zip1;
       float_sw4 u3zim1,u3zim2,lau3zx,mu3xz,u3zjp2,u3zjp1,u3zjm1,u3zjm2,lau3zy;
@@ -358,7 +416,19 @@ void rhs4sg_rev( int ifirst, int ilast, int jfirst, int jlast, int kfirst, int k
 	    lu(1,i,j,k) =  cof*r1;
             lu(2,i,j,k) =  cof*r2;
             lu(3,i,j,k) =  cof*r3;
-   } 
+
+           });
+     }
+            
+            /*
+#ifdef NESTED            
+                    }); //nested
+#else
+              }); 
+        }); 
+   }); 
+#endif        
+            */         
 
   
       if( onesided[4]==1 )

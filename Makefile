@@ -8,9 +8,10 @@
 # use mvapich2-intel-2.1
 #
 
-ifneq ($(ckernel),yes)
-   ckernel := "no"
-endif
+ckernel := "yes"
+#ifneq ($(ckernel),yes)
+#   ckernel := "no"
+#endif
 
 ifneq ($(single),yes)
    single := "no"
@@ -34,10 +35,12 @@ ifeq ($(findstring fourier,$(HOSTNAME)),fourier)
 else ifeq ($(findstring quartz,$(HOSTNAME)),quartz)
   FC = mpifort
   CXX = mpicxx
+	RAJA_LOCATION=/g/g17/vargas45/Git-Repo/RSW4/RAJA/build-intel
   OMPOPT = -qopenmp
   MKL_PATH = /usr/tce/packages/mkl/mkl-11.3.3/lib
-  RAJA_LOCATION=/g/g12/andersp/src/RAJA/install/usr/local
-  EXTRA_CXX_FLAGS = -xCORE-AVX2
+  RAJA_LOCATION=/g/g17/vargas45/Git-Repo/RSW4/RAJA/build-intel
+  #EXTRA_CXX_FLAGS = -xCORE-AVX2
+	EXTRA_CXX_FLAGS  = -xCORE-AVX2 -I $(RAJA_LOCATION)/include -std=c++11
   EXTRA_FORT_FLAGS = -xCORE-AVX2
   EXTRA_LINK_FLAGS = -Wl,-rpath=$(SW4ROOT)/lib -Wl,-rpath=${MKL_PATH} -L${MKL_PATH} -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lm -ldl -lifcore
   openmp = yes
